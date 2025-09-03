@@ -1,12 +1,153 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>е
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Basic HTML Page</title>
+    <title>Word Search from CSV</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            width: 200px;
+            margin: 10px;
+        }
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to My Basic HTML Page</h1>
-    <p>This is a simple paragraph to show basic HTML structure.</p>
+    <h1>Word Search</h1>
+    <input type="text" id="wordInput" placeholder="Enter a word" oninput="searchWord()">
+    <div id="result"></div>
+
+    <script>
+        // Sample CSV data (replace with fetch from your CSV file)
+        const csvData = `word,result
+apple,Fruit: A sweet red or green fruit
+banana,Fruit: A long yellow fruit
+cat,Animal: A small furry pet
+dog,Animal: A loyal canine companion`;
+
+        // Parse CSV data into an array of objects
+        function parseCSV(data) {
+            const lines = data.trim().split('\n');
+            const headers = lines[0].split(',');
+            const result = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const obj = {};
+                headers.forEach((header, index) => {
+                    obj[header.trim()] = values[index].trim();
+                });
+                result.push(obj);
+            }
+            return result;
+        }
+
+        // Search for word in parsed CSV data
+        function searchWord() {
+            const input = document.getElementById('wordInput').value.toLowerCase();
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+
+            if (input === '') {
+                return;
+            }
+
+            const data = parseCSV(csvData);
+            const matches = data.filter(item => item.word.toLowerCase() === input);
+
+            if (matches.length > 0) {
+                resultDiv.innerHTML = `<strong>${input}</strong> = ${matches[0].result}`;
+            } else {
+                resultDiv.innerHTML = `No result found for "<strong>${input}</strong>"`;
+            }
+        }
+
+        // To use an actual CSV file, uncomment and modify the following:
+        /*
+        async function loadCSV() {
+            try {
+                const response = await fetch('path/to/your/data.csv');
+                const data = await response.text();
+                return parseCSV(data);
+            } catch (error) {
+                console.error('Error loading CSV:', error);
+                document.getElementById('result').innerHTML = 'Error loading CSV file';
+            }
+        }
+
+        // Call loadCSV and use its data in searchWord
+        let csvDataArray = [];
+        loadCSV().then(data => {
+            csvDataArray = data;
+        });
+
+        function searchWord() {
+            const input = document.getElementById('wordInput').value.toLowerCase();
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+
+            if (input === '') {
+                return;
+            }
+
+            const matches = csvDataArray.filter(item => item.word.toLowerCase() === input);
+            if (matches.length > 0) {
+                resultDiv.innerHTML = `<strong>${input}</strong> = ${matches[0].result}`;
+            } else {
+                resultDiv.innerHTML = `No result found for "<strong>${input}</strong>"`;
+            }
+        }
+        */
+    </script>
 </body>
 </html>
