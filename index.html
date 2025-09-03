@@ -37,12 +37,12 @@
         }
         return gk_fileData[filename] || "";
         }
-        </script><!DOCTYPE html>е
+        </script><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word Search from CSV</title>
+    <title>Word Search from TXT</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -69,66 +69,36 @@
     <div id="result"></div>
 
     <script>
-        // Sample CSV data (replace with fetch from your CSV file)
-        const csvData = `word,result
-apple,Fruit: A sweet red or green fruit
-banana,Fruit: A long yellow fruit
-cat,Animal: A small furry pet
-dog,Animal: A loyal canine companion`;
+        // Load and parse the TXT file
+        async function loadTXT() {
+            try {
+                const response = await fetch('data.txt'); // Update with your .txt file path
+                const data = await response.text();
+                return parseTXT(data);
+            } catch (error) {
+                console.error('Error loading TXT:', error);
+                document.getElementById('result').innerHTML = 'Error loading TXT file';
+                return [];
+            }
+        }
 
-        // Parse CSV data into an array of objects
-        function parseCSV(data) {
+        // Parse TXT data into an array of objects
+        function parseTXT(data) {
             const lines = data.trim().split('\n');
-            const headers = lines[0].split(',');
             const result = [];
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',');
-                const obj = {};
-                headers.forEach((header, index) => {
-                    obj[header.trim()] = values[index].trim();
-                });
-                result.push(obj);
+            for (let line of lines) {
+                const [word, value] = line.split(':').map(item => item.trim());
+                if (word && value) {
+                    result.push({ word, result: value });
+                }
             }
             return result;
         }
 
-        // Search for word in parsed CSV data
-        function searchWord() {
-            const input = document.getElementById('wordInput').value.toLowerCase();
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = '';
-
-            if (input === '') {
-                return;
-            }
-
-            const data = parseCSV(csvData);
-            const matches = data.filter(item => item.word.toLowerCase() === input);
-
-            if (matches.length > 0) {
-                resultDiv.innerHTML = `<strong>${input}</strong> = ${matches[0].result}`;
-            } else {
-                resultDiv.innerHTML = `No result found for "<strong>${input}</strong>"`;
-            }
-        }
-
-        // To use an actual CSV file, uncomment and modify the following:
-        /*
-        async function loadCSV() {
-            try {
-                const response = await fetch('path/to/your/data.csv');
-                const data = await response.text();
-                return parseCSV(data);
-            } catch (error) {
-                console.error('Error loading CSV:', error);
-                document.getElementById('result').innerHTML = 'Error loading CSV file';
-            }
-        }
-
-        // Call loadCSV and use its data in searchWord
-        let csvDataArray = [];
-        loadCSV().then(data => {
-            csvDataArray = data;
+        // Search for word in parsed TXT data
+        let txtDataArray = [];
+        loadTXT().then(data => {
+            txtDataArray = data;
         });
 
         function searchWord() {
@@ -140,14 +110,13 @@ dog,Animal: A loyal canine companion`;
                 return;
             }
 
-            const matches = csvDataArray.filter(item => item.word.toLowerCase() === input);
+            const matches = txtDataArray.filter(item => item.word.toLowerCase() === input);
             if (matches.length > 0) {
                 resultDiv.innerHTML = `<strong>${input}</strong> = ${matches[0].result}`;
             } else {
                 resultDiv.innerHTML = `No result found for "<strong>${input}</strong>"`;
             }
         }
-        */
     </script>
 </body>
 </html>
