@@ -74,7 +74,7 @@
             try {
                 const response = await fetch('data.txt'); // Update with your .txt file path
                 const data = await response.text();
-                return parseTXT(data);
+                return parseAndSortTXT(data);
             } catch (error) {
                 console.error('Error loading TXT:', error);
                 document.getElementById('result').innerHTML = 'Error loading TXT file';
@@ -82,27 +82,50 @@
             }
         }
 
-        // Parse TXT data into an array of objects
-        function parseTXT(data) {
+        // Parse TXT data into an array of objects and sort alphabetically by word
+        function parseAndSortTXT(data) {
             const lines = data.trim().split('\n');
             const result = [];
             for (let line of lines) {
-                const [word, value] = line.split(':').map(item => item.trim());
+                const [word, value] = line.split('\t').map(item => item.trim());
                 if (word && value) {
                     result.push({ word, result: value });
                 }
             }
+            // Sort the array by word (case-insensitive)
+            result.sort((a, b) => a.word.toLowerCase().localeCompare(b.word.toLowerCase()));
             return result;
         }
 
-        // Search for word in parsed TXT data
+        // Binary search for exact match (case-insensitive)
+        function binarySearch(arr, target) {
+            let low = 0;
+            let high = arr.length - 1;
+            target = target.toLowerCase();
+
+            while (low <= high) {
+                const mid = Math.floor((low + high) / 2);
+                const midWord = arr[mid].word.toLowerCase();
+
+                if (midWord === target) {
+                    return arr[mid];
+                } else if (midWord < target) {
+                    low = mid + 1;
+                } else {
+                    high = mid - 1;
+                }
+            }
+            return null;
+        }
+
+        // Search for word using binary search
         let txtDataArray = [];
         loadTXT().then(data => {
             txtDataArray = data;
         });
 
         function searchWord() {
-            const input = document.getElementById('wordInput').value.toLowerCase();
+            const input = document.getElementById('wordInput').value.trim();
             const resultDiv = document.getElementById('result');
             resultDiv.innerHTML = '';
 
@@ -110,9 +133,9 @@
                 return;
             }
 
-            const matches = txtDataArray.filter(item => item.word.toLowerCase() === input);
-            if (matches.length > 0) {
-                resultDiv.innerHTML = `<strong>${input}</strong> = ${matches[0].result}`;
+            const match = binarySearch(txtDataArray, input);
+            if (match) {
+                resultDiv.innerHTML = `<strong>${input}</strong> = ${match.result}`;
             } else {
                 resultDiv.innerHTML = `No result found for "<strong>${input}</strong>"`;
             }
